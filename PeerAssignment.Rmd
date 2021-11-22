@@ -1,0 +1,24 @@
+---
+title: "R-markdown peergraded asignment"
+author: "ROBERT"
+date: "11/22/2021"
+output: html_document
+---
+##Reading data from local directory
+I will use the function **read.csv** to load the data
+```{r}
+Activity<-read.csv("D://Self-made//Data science//Project-on-R-markdown//activity.csv")
+```
+After loading the data, we know hit on the *data mining*
+first lets determine the total number of steps taken per day
+```{r}
+library(tidyverse)
+DailySteps<-Activity%>%
+  group_by(date)%>%
+  na.omit()%>%
+  summarise(DailySteps=sum(steps))
+DailySteps
+```
+Lets visualize our data with Histogram to check daily steps
+```{r}
+with(DailySteps,hist(DailySteps,breaks = 53))
