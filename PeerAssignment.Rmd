@@ -13,12 +13,84 @@ After loading the data, we know hit on the *data mining*
 first lets determine the total number of steps taken per day
 ```{r}
 library(tidyverse)
-DailySteps<-Activity%>%
+Daily<-Activity%>%
   group_by(date)%>%
   na.omit()%>%
   summarise(DailySteps=sum(steps))
-DailySteps
+Daily
 ```
 Lets visualize our data with Histogram to check daily steps
 ```{r}
-with(DailySteps,hist(DailySteps,breaks = 53))
+with(Daily,hist(DailySteps,breaks = 53))
+```
+Now lets check on the *mean* and the *median*
+```{r}
+#MEAN
+mean(Daily$DailySteps)
+#Median
+median(Daily$DailySteps)
+```
+How is the time series of the 5-minute interval looking like, lets see:
+```{r}
+library(tidyverse)
+TimeSeries<-Activity%>%
+  group_by(interval)%>%
+  na.omit()%>%
+  summarise(Average=mean(steps))
+with(TimeSeries,plot(interval,Average,type = "l",col="red",main = "5 minute interval"))
+#Which is an interval with highest average
+TimeSeries$interval[which.max(TimeSeries$Average)]
+
+```
+Our dataset seems got a lot of *NAs*, lets see exact number
+```{r}
+sum(is.na(Activity))
+```
+I impute the data with **MICE** package to remove NA's
+```{r}
+library(mice)
+DataWithoutNas<-mice::mice(Activity,m=5,method = "pmm",maxit = 50,seed = 500)
+```
+The Mice package have manipulated the missing values using pmm method, Lets take a look at the manipulated data
+```{r}
+completedata<-mice::complete(DataWithoutNas,3)
+completedata
+```
+Lets draw an histogram of the completedata 
+```{r}
+DailyStepSum<-completedata%>%
+  group_by(date)%>%
+  summarise(DayStep=sum(steps))
+with(DailyStepSum,hist(DayStep,breaks = 100,col = "blue"))
+```
+Lets check the meadian and the mean of the imputed data
+```{r}
+#MEAN
+mean(DailyStepSum$DayStep)
+#MEDIAN
+median(DailyStepSum$DayStep)
+```
+## Weekend and weekday
+I decided to create a new column, using mutate funtion, clarifying if date is falling on weekend or weekday 
+```{r}
+library(tidyverse)
+completedata$date<-as.Date(completedata$date)
+DayClarifiedData<-completedata%>%
+  mutate(weekly=ifelse(weekdays(date)=="Saturday"|weekdays(date)=="Sunday","weekend","Weekday"))
+DayClarifiedData
+```
+##Time series for weekend and weekday
+```{r}
+Weekendays<-DayClarifiedData%>%
+  filter(weekly=="weekend")%>%
+  group_by(interval)%>%
+  na.omit()%>%
+  summarise(WeekendMeanStep=mean(steps))
+par(mfrow=c(1,2)) 
+with(Weekendays,plot(interval,WeekendMeanStep,type="l",col="blue",main = "Weekend 5 minute interval"))
+WeekDayDays<-DayClarifiedData%>%
+  filter(weekly=="Weekday")%>%
+  group_by(interval)%>%
+  na.omit()%>%
+  summarise(weekdayMeanStep=mean(steps))
+with(WeekDayDays,plot(interval,weekdayMeanStep,type = "l",col="red",main = "Weekday 5 minute interval"))
